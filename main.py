@@ -1,18 +1,18 @@
-import os
-
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
+import os
+import telegram
+
 from dotenv import load_dotenv
+from telegram.ext import Filters, MessageHandler, Updater
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 def echo(bot, update):
-    """Echo the user message."""
     update.message.reply_text(update.message.text)
 
 def error(bot, update, error):
-    """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 def divide_question_file():
@@ -34,13 +34,24 @@ def main():
     load_dotenv()
     # divide_question_file()
 
-    token = os.getenv('TOKEN')
-    updater = Updater(token)
-    dp = updater.dispatcher
-    dp.add_handler(MessageHandler(Filters.text, echo))
-    dp.add_error_handler(error)
-    updater.start_polling()
-    updater.idle()
+    token = os.getenv('TG_TOKEN')
+    chat_id = os.getenv("TG_CHAT_ID")
+
+
+    # updater = Updater(token)
+    # dp = updater.dispatcher
+    #
+    # dp.add_handler(MessageHandler(Filters.text, echo))
+    # dp.add_error_handler(error)
+    # updater.start_polling()
+    # updater.idle()
+
+    bot = telegram.Bot(token=token)
+    custom_keyboard = [['Новый вопрос', 'Сдаться'],  ['Мой счет']]
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    bot.send_message(chat_id=chat_id,
+                     text='test',
+                reply_markup=reply_markup)
 
 if __name__ == '__main__':
     main()
