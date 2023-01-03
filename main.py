@@ -1,4 +1,5 @@
 import logging
+import random
 import os
 import telegram
 
@@ -10,7 +11,15 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 def echo(bot, update):
-    update.message.reply_text(update.message.text)
+    quiz = divide_question_file()
+    custom_keyboard = [['Новый вопрос', 'Сдаться'],  ['Мой счет']]
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+
+    if update.message.text == 'Новый вопрос':
+        question = random.choice(list(quiz.keys()))
+        update.message.reply_text(question, reply_markup=reply_markup)
+    else:
+        update.message.reply_text(update.message.text, reply_markup=reply_markup)
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
@@ -30,28 +39,24 @@ def divide_question_file():
             data = data.replace('\n', ' ')
             answers.append(data[data.find(':')+2:])
 
+    quiz = {}
+    for el, question in enumerate(questions):
+        quiz[question] = answers[el]
+
+    return quiz
+
 def main():
     load_dotenv()
-    # divide_question_file()
 
     token = os.getenv('TG_TOKEN')
-    chat_id = os.getenv("TG_CHAT_ID")
 
+    updater = Updater(token)
+    dp = updater.dispatcher
 
-    # updater = Updater(token)
-    # dp = updater.dispatcher
-    #
-    # dp.add_handler(MessageHandler(Filters.text, echo))
-    # dp.add_error_handler(error)
-    # updater.start_polling()
-    # updater.idle()
-
-    bot = telegram.Bot(token=token)
-    custom_keyboard = [['Новый вопрос', 'Сдаться'],  ['Мой счет']]
-    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-    bot.send_message(chat_id=chat_id,
-                     text='test',
-                reply_markup=reply_markup)
+    dp.add_handler(MessageHandler(Filters.text, echo))
+    dp.add_error_handler(error)
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
     main()
