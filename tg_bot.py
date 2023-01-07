@@ -9,6 +9,8 @@ import telegram
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler, Updater
+from questions import divide_question_file
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -18,7 +20,7 @@ reply_keyboard = [['Новый вопрос', 'Сдаться'], ['Мой сче
 reply_markup=ReplyKeyboardMarkup(reply_keyboard)
 
 NEW_QUESTION, ANSWER, QUIT = range(3)
-# CHOOSING, ANSWER = range(2)
+
 def start(bot, update):
     update.message.reply_text(
         'Привет! Добро пожаловать в нашу викторину!\n'
@@ -58,7 +60,7 @@ def handle_quit_request(bot, update):
     question = database.get(update.message.from_user.id)
     answer = quiz[question]
 
-    message = 'Правильный ответ:\n\n' + answer
+    message = 'Правильный ответ:\n' + answer
     update.message.reply_text(message,
                               reply_markup=reply_markup)
 
@@ -75,26 +77,6 @@ def cancel(bot, update):
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
 
-def divide_question_file():
-    with open('questions/1vs1201.txt', 'r', encoding='KOI8-R') as questions_file:
-        file_data = questions_file.read().split('\n\n')
-
-    questions = []
-    answers = []
-    for data in file_data:
-        if data.startswith('Вопрос') or data.startswith('\nВопрос'):
-            data = data.replace('\n', ' ')
-            questions.append(data[data.find(':')+2:])
-
-        if data.startswith('Ответ') or data.startswith('\nОтвет'):
-            data = data.replace('\n', ' ')
-            answers.append(data[data.find(':')+2:])
-
-    quiz = {}
-    for el, question in enumerate(questions):
-        quiz[question] = answers[el]
-
-    return quiz
 
 def main():
     token = os.environ.get('TG_TOKEN')
@@ -112,7 +94,6 @@ def main():
                      MessageHandler(Filters.text, handle_solution_attempt)],
             QUIT: [MessageHandler(Filters.text, handle_quit_request)],
         },
-
         fallbacks=[CommandHandler('cancel', cancel)]
     )
     dp.add_handler(conv_handler)
@@ -131,5 +112,4 @@ if __name__ == '__main__':
         port=13552,
         password=redis_password,
         decode_responses=True)
-
     main()
