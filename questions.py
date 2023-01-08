@@ -1,11 +1,15 @@
 import os, glob
+from dotenv import load_dotenv
+
 
 def divide_question_file():
+    load_dotenv()
+
     quiz = {}
     questions = []
     answers = []
 
-    path = './questions/'
+    path = os.path.join(os.getcwd(), os.environ.get("QUESTIONS_FOLDER"))
     for filename in glob.glob(os.path.join(path, '*.txt')):
         with open(os.path.join(os.getcwd(), filename), 'r', encoding='KOI8-R') as questions_file:
             file_data = questions_file.read().split('\n\n')
@@ -22,5 +26,4 @@ def divide_question_file():
 
         for el, question in enumerate(questions):
             quiz[question] = answers[el]
-
     return quiz
