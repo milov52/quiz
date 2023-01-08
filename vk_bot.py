@@ -124,8 +124,7 @@ def main():
                 else:
                     handle_solution_attempt(event, vk_api, quiz, database)
     except Exception as err:
-        logger.error('Бот упал с ошибкой')
-        logger.error(err, exc_info=True)
+        logger.exception('Бот упал с ошибкой')
 
 if __name__ == "__main__":
     main()

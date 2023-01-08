@@ -128,8 +128,8 @@ def main():
         updater.start_polling()
         updater.idle()
     except Exception as err:
-        logger.error('Бот упал с ошибкой')
-        logger.error(err, exc_info=True)
+        logger.exception('Бот упал с ошибкой')
+
 
 
 if __name__ == '__main__':
