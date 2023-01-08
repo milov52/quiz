@@ -19,6 +19,7 @@ reply_markup = ReplyKeyboardMarkup(reply_keyboard)
 
 NEW_QUESTION, ANSWER, QUIT = range(3)
 
+
 def start(bot, update):
     update.message.reply_text(
         'Привет! Добро пожаловать в нашу викторину!\n'
@@ -129,7 +130,6 @@ def main():
         updater.idle()
     except Exception as err:
         logger.exception('Бот упал с ошибкой')
-
 
 
 if __name__ == '__main__':
