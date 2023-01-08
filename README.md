@@ -50,6 +50,7 @@ pip install -r requirements.txt
 - VK_TOKEN - token для бота в vk
 - TG_CHAT_ID - id вашего чата, можно получить через бота @userinfobot
 - TG_LOGGER_TOKEN - token для бота логгирования
+- QUESTIONS_FOLDER - путь к директории с вопросами
 
 Создать файл `.env` в каталоге и добавьте туда значения для данных переменных:
 Пример:
@@ -59,6 +60,7 @@ TG_TOKEN=6699
 VK_TOKEN=222
 TG_CHAT_ID=848
 TG_LOGGER_TOKEN=333 
+QUESTIONS_FOLDER=questions
 ```
 
 Файлы с вопросами и ответами для викторины в формате txt должны лежать в директории questions программы

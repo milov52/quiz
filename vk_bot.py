@@ -77,7 +77,8 @@ def handle_quit_request(event, vk_api, quiz, database):
 
 def main():
     load_dotenv()
-    quiz = divide_question_file()
+    question_folder = os.environ.get("QUESTIONS_FOLDER")
+    quiz = divide_question_file(question_folder)
 
     token = os.environ.get("VK_TOKEN")
     tg_logger_token = os.getenv("TG_LOGGER_TOKEN")
