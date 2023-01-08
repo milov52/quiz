@@ -21,17 +21,6 @@ keyboard.add_button('Сдаться')
 keyboard.add_line()
 keyboard.add_button('Мой счет')
 
-def start(event, vk_api):
-    message = '''Добро пожаловать в нашу викторину\n\n'
-              Для начала нажмите на кнопку Новый вопрос'''
-
-    vk_api.messages.send(
-        peer_id=event.user_id,
-        message=message,
-        keyboard=keyboard.get_keyboard(),
-        random_id=get_random_id(),
-    )
-
 def handle_new_question_request(event, vk_api, quiz, database):
     question = random.choice(list(quiz.keys()))
     database.set(event.user_id, question)
@@ -52,7 +41,7 @@ def handle_solution_attempt(event, vk_api, quiz, database):
        message = 'Неправильно… Попробуешь ещё раз?'
     else:
        message = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-       handle_new_question_request(event, vk_api)
+       handle_new_question_request(event, vk_api, quiz, database)
 
     vk_api.messages.send(
         peer_id=event.user_id,
@@ -72,7 +61,7 @@ def handle_quit_request(event, vk_api, quiz, database):
         keyboard=keyboard.get_keyboard(),
         random_id=get_random_id(),
     )
-    handle_new_question_request(event, vk_api)
+    handle_new_question_request(event, vk_api, quiz, database)
 
 
 def main():
@@ -101,22 +90,15 @@ def main():
 
     logger.setLevel(logging.INFO)
     logger.addHandler(TelegramLogsHandler(bot_logger, chat_id))
-    start_flag = True
     try:
         vk_session = vk.VkApi(token=token)
         logger.info('start dataflow vk bot')
 
         vk_api = vk_session.get_api()
-
         longpoll = VkLongPoll(vk_session)
 
         for event in longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                if start_flag:
-                    start(event, vk_api)
-                    start_flag = False
-                    continue
-
                 if event.text == "Новый вопрос":
                     handle_new_question_request(event, vk_api, quiz, database)
                 elif event.text == "Сдаться":
