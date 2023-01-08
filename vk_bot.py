@@ -32,7 +32,7 @@ def start(event, vk_api):
         random_id=get_random_id(),
     )
 
-def handle_new_question_request(event, vk_api):
+def handle_new_question_request(event, vk_api, quiz, database):
     question = random.choice(list(quiz.keys()))
     database.set(event.user_id, question)
 
@@ -43,7 +43,7 @@ def handle_new_question_request(event, vk_api):
         random_id=get_random_id(),
     )
 
-def handle_solution_attempt(event, vk_api):
+def handle_solution_attempt(event, vk_api, quiz, database):
     question = database.get(event.user_id)
     answer = quiz[question]
     answer = answer.split('.')[0]
@@ -61,7 +61,7 @@ def handle_solution_attempt(event, vk_api):
         random_id=get_random_id(),
     )
 
-def handle_quit_request(event, vk_api):
+def handle_quit_request(event, vk_api, quiz, database):
     question = database.get(event.user_id)
     answer = quiz[question]
 
@@ -76,10 +76,21 @@ def handle_quit_request(event, vk_api):
 
 
 def main():
-    token = os.environ.get("VK_TOKEN")
+    load_dotenv()
+    quiz = divide_question_file()
 
+    token = os.environ.get("VK_TOKEN")
     tg_logger_token = os.getenv("TG_LOGGER_TOKEN")
     chat_id = os.environ.get("TG_CHAT_ID")
+    redis_password = os.environ.get('REDIS_PASSWORD')
+    redis_host = os.environ.get('REDIS_HOST')
+    redis_port = os.environ.get('REDIS_PORT')
+
+    database = redis.Redis(
+        host=redis_host,
+        port=redis_port,
+        password=redis_password,
+        decode_responses=True)
 
     bot_logger = telegram.Bot(token=tg_logger_token)
 
@@ -106,27 +117,16 @@ def main():
                     continue
 
                 if event.text == "Новый вопрос":
-                    handle_new_question_request(event, vk_api)
+                    handle_new_question_request(event, vk_api, quiz, database)
                 elif event.text == "Сдаться":
-                    handle_quit_request(event, vk_api)
+                    handle_quit_request(event, vk_api, quiz, database)
                 else:
-                    handle_solution_attempt(event, vk_api)
+                    handle_solution_attempt(event, vk_api, quiz, database)
     except Exception as err:
         logger.error('Бот упал с ошибкой')
         logger.error(err, exc_info=True)
 
 if __name__ == "__main__":
-    load_dotenv()
-    quiz = divide_question_file()
-    redis_password = os.environ.get('REDIS_PASSWORD')
-    redis_host = os.environ.get('REDIS_HOST')
-    redis_port = os.environ.get('REDIS_PORT')
-
-    database = redis.Redis(
-        host=redis_host,
-        port=redis_port,
-        password=redis_password,
-        decode_responses=True)
     main()
 
 
