@@ -46,7 +46,6 @@ def handle_new_question_request(event, vk_api):
 def handle_solution_attempt(event, vk_api):
     question = database.get(event.user_id)
     answer = quiz[question]
-
     answer = answer.split('.')[0]
 
     if not event.text.lower() == answer.lower():

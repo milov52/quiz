@@ -1,23 +1,20 @@
 import logging
-from pprint import pprint
+import os
+import random
 
 import redis
-import random
-import os
 import telegram
-
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler, Updater
+
+from handlers import TelegramLogsHandler
 from questions import divide_question_file
 
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('Logger')
 
 reply_keyboard = [['Новый вопрос', 'Сдаться'], ['Мой счет']]
-reply_markup=ReplyKeyboardMarkup(reply_keyboard)
+reply_markup = ReplyKeyboardMarkup(reply_keyboard)
 
 NEW_QUESTION, ANSWER, QUIT = range(3)
 
@@ -36,13 +33,9 @@ def handle_new_question_request(bot, update):
     return ANSWER
 
 def handle_solution_attempt(bot, update):
-
     question = database.get(update.message.from_user.id)
     answer = quiz[question]
-    print(answer)
-
     answer = answer.split('.')[0]
-    print(answer)
 
     if update.message.text.lower() == answer.lower():
        message = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
@@ -73,40 +66,51 @@ def cancel(bot, update):
                               reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
-
-def error(bot, update, error):
-    logger.warning('Update "%s" caused error "%s"', update, error)
-
-
 def main():
     token = os.environ.get('TG_TOKEN')
+    tg_logger_token = os.getenv("TG_LOGGER_TOKEN")
+    chat_id = os.environ.get("TG_CHAT_ID")
 
-    updater = Updater(token)
-    dp = updater.dispatcher
+    bot_logger = telegram.Bot(token=tg_logger_token)
 
-    conv_handler = ConversationHandler(
-        # entry_points=[CommandHandler('start', start)],
-        entry_points=[MessageHandler(Filters.text, handle_new_question_request)],
-        states={
-            NEW_QUESTION: [MessageHandler(Filters.text, handle_new_question_request)],
-            ANSWER: [RegexHandler('^Новый вопрос$', handle_new_question_request),
-                     RegexHandler('^Сдаться$', handle_quit_request),
-                     MessageHandler(Filters.text, handle_solution_attempt)],
-            QUIT: [MessageHandler(Filters.text, handle_quit_request)],
-        },
-        fallbacks=[CommandHandler('cancel', cancel)]
+    logging.basicConfig(
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
     )
-    dp.add_handler(conv_handler)
 
-    dp.add_error_handler(error)
-    updater.start_polling()
-    updater.idle()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(TelegramLogsHandler(bot_logger, chat_id))
+
+    try:
+        updater = Updater(token)
+        dp = updater.dispatcher
+
+        conv_handler = ConversationHandler(
+            entry_points=[CommandHandler('start', start)],
+            states={
+                NEW_QUESTION: [MessageHandler(Filters.text, handle_new_question_request)],
+                ANSWER: [RegexHandler('^Новый вопрос$', handle_new_question_request),
+                         RegexHandler('^Сдаться$', handle_quit_request),
+                         MessageHandler(Filters.text, handle_solution_attempt)],
+                QUIT: [MessageHandler(Filters.text, handle_quit_request)],
+            },
+            fallbacks=[CommandHandler('cancel', cancel)]
+        )
+        dp.add_handler(conv_handler)
+
+        updater.start_polling()
+        updater.idle()
+    except Exception as err:
+        logger.error('Бот упал с ошибкой')
+        logger.error(err, exc_info=True)
+
+
 
 if __name__ == '__main__':
     load_dotenv()
     redis_password = os.environ.get('REDIS_PASSWORD')
 
     quiz = divide_question_file()
+    print(quiz)
     database = redis.Redis(
         host='redis-13552.c265.us-east-1-2.ec2.cloud.redislabs.com',
         port=13552,
