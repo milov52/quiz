@@ -24,6 +24,8 @@ def divide_question_file():
                 data = data.replace('\n', ' ')
                 answers.append(data[data.find(':')+2:])
 
-        for el, question in enumerate(questions):
-            quiz[question] = answers[el]
+
+        for index, question in enumerate(questions):
+            quiz[question] = answers[index]
+
     return quiz
