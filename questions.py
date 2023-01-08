@@ -1,15 +1,11 @@
 import os, glob
-from dotenv import load_dotenv
 
-
-def divide_question_file():
-    load_dotenv()
-
+def divide_question_file(question_folder):
     quiz = {}
     questions = []
     answers = []
 
-    path = os.path.join(os.getcwd(), os.environ.get("QUESTIONS_FOLDER"))
+    path = os.path.join(os.getcwd(), question_folder)
     for filename in glob.glob(os.path.join(path, '*.txt')):
         with open(os.path.join(os.getcwd(), filename), 'r', encoding='KOI8-R') as questions_file:
             file_data = questions_file.read().split('\n\n')

@@ -119,10 +119,12 @@ if __name__ == "__main__":
     load_dotenv()
     quiz = divide_question_file()
     redis_password = os.environ.get('REDIS_PASSWORD')
+    redis_host = os.environ.get('REDIS_HOST')
+    redis_port = os.environ.get('REDIS_PORT')
 
     database = redis.Redis(
-        host='redis-13552.c265.us-east-1-2.ec2.cloud.redislabs.com',
-        port=13552,
+        host=redis_host,
+        port=redis_port,
         password=redis_password,
         decode_responses=True)
     main()

@@ -1,6 +1,7 @@
 import logging
 import os
 import random
+from functools import partial
 
 import redis
 import telegram
@@ -25,31 +26,33 @@ def start(bot, update):
         reply_markup=reply_markup)
     return NEW_QUESTION
 
-def handle_new_question_request(bot, update):
+
+def handle_new_question_request(bot, update, quiz, database):
     question = random.choice(list(quiz.keys()))
     database.set(update.message.from_user.id, question)
     update.message.reply_text(question,
                               reply_markup=reply_markup)
     return ANSWER
 
-def handle_solution_attempt(bot, update):
+
+def handle_solution_attempt(bot, update, quiz, database):
     question = database.get(update.message.from_user.id)
     answer = quiz[question]
     answer = answer.split('.')[0]
 
     if update.message.text.lower() == answer.lower():
-       message = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-       update.message.reply_text(message,
+        message = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+        update.message.reply_text(message,
                                   reply_markup=reply_markup)
-       return NEW_QUESTION
+        return NEW_QUESTION
     else:
-       message = 'Неправильно… Попробуешь ещё раз?'
-       update.message.reply_text(message,
-                          reply_markup=reply_markup)
-       return ANSWER
+        message = 'Неправильно… Попробуешь ещё раз?'
+        update.message.reply_text(message,
+                                  reply_markup=reply_markup)
+        return ANSWER
 
 
-def handle_quit_request(bot, update):
+def handle_quit_request(bot, update, quiz, database):
     question = database.get(update.message.from_user.id)
     answer = quiz[question]
 
@@ -57,7 +60,8 @@ def handle_quit_request(bot, update):
     update.message.reply_text(message,
                               reply_markup=reply_markup)
 
-    handle_new_question_request(bot, update)
+    handle_new_question_request(bot, update, quiz, database)
+
 
 def cancel(bot, update):
     user = update.message.from_user
@@ -66,11 +70,25 @@ def cancel(bot, update):
                               reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
+
 def main():
+    load_dotenv()
+    redis_password = os.environ.get('REDIS_PASSWORD')
+    redis_host = os.environ.get('REDIS_HOST')
+    redis_port = os.environ.get('REDIS_PORT')
+
+    database = redis.Redis(
+        host=redis_host,
+        port=redis_port,
+        password=redis_password,
+        decode_responses=True)
+
     token = os.environ.get('TG_TOKEN')
     tg_logger_token = os.getenv("TG_LOGGER_TOKEN")
     chat_id = os.environ.get("TG_CHAT_ID")
+    question_folder = os.environ.get("QUESTIONS_FOLDER")
 
+    quiz = divide_question_file(question_folder)
     bot_logger = telegram.Bot(token=tg_logger_token)
 
     logging.basicConfig(
@@ -87,11 +105,21 @@ def main():
         conv_handler = ConversationHandler(
             entry_points=[CommandHandler('start', start)],
             states={
-                NEW_QUESTION: [MessageHandler(Filters.text, handle_new_question_request)],
-                ANSWER: [RegexHandler('^Новый вопрос$', handle_new_question_request),
-                         RegexHandler('^Сдаться$', handle_quit_request),
-                         MessageHandler(Filters.text, handle_solution_attempt)],
-                QUIT: [MessageHandler(Filters.text, handle_quit_request)],
+                NEW_QUESTION: [MessageHandler(Filters.text, partial(handle_new_question_request,
+                                                                    quiz=quiz,
+                                                                    database=database))],
+                ANSWER: [RegexHandler('^Новый вопрос$', partial(handle_new_question_request,
+                                                                quiz=quiz,
+                                                                database=database)),
+                         RegexHandler('^Сдаться$', partial(handle_quit_request,
+                                                           quiz=quiz,
+                                                           database=database)),
+                         MessageHandler(Filters.text, partial(handle_solution_attempt,
+                                                              quiz=quiz,
+                                                              database=database))],
+                QUIT: [MessageHandler(Filters.text, partial(handle_quit_request,
+                                                            quiz=quiz,
+                                                            database=database))],
             },
             fallbacks=[CommandHandler('cancel', cancel)]
         )
@@ -104,16 +132,5 @@ def main():
         logger.error(err, exc_info=True)
 
 
-
 if __name__ == '__main__':
-    load_dotenv()
-    redis_password = os.environ.get('REDIS_PASSWORD')
-
-    quiz = divide_question_file()
-
-    database = redis.Redis(
-        host='redis-13552.c265.us-east-1-2.ec2.cloud.redislabs.com',
-        port=13552,
-        password=redis_password,
-        decode_responses=True)
     main()
