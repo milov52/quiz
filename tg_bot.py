@@ -110,7 +110,7 @@ if __name__ == '__main__':
     redis_password = os.environ.get('REDIS_PASSWORD')
 
     quiz = divide_question_file()
-    print(quiz)
+
     database = redis.Redis(
         host='redis-13552.c265.us-east-1-2.ec2.cloud.redislabs.com',
         port=13552,
